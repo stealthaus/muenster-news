@@ -1,0 +1,77 @@
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+  schedule:
+    # Mo–Fr 6:30–19:00 Uhr (Europe/Berlin) alle 45 Minuten. Cron läuft in UTC, daher je ein Satz für
+    # Winterzeit (UTC+1) und Sommerzeit (UTC+2); scripts/schedule-gate.ts lässt nur den passenden durch.
+    # Winterzeit
+    - cron: '30 5,8,11,14,17 * * 1-5'
+    - cron: '15 6,9,12,15 * * 1-5'
+    - cron: '0,45 7,10,13,16 * * 1-5'
+    # Sommerzeit
+    - cron: '30 4,7,10,13,16 * * 1-5'
+    - cron: '15 5,8,11,14 * * 1-5'
+    - cron: '0,45 6,9,12,15 * * 1-5'
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+  actions: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    outputs:
+      run: ${{ steps.gate.outputs.run }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - id: gate
+        run: npx tsx scripts/schedule-gate.ts "${{ github.event_name }}" "${{ github.event.schedule }}"
+      - if: steps.gate.outputs.run == 'true' && github.event_name != 'schedule'
+        run: npm test
+      - if: steps.gate.outputs.run == 'true'
+        run: npm run build
+      - if: steps.gate.outputs.run == 'true'
+        id: pages
+        uses: actions/configure-pages@v5
+      - if: steps.gate.outputs.run == 'true'
+        name: Fetch news
+        run: npm run fetch-news -- dist/data/news.json "${{ steps.pages.outputs.base_url }}/data/news.json"
+      - if: steps.gate.outputs.run == 'true'
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+      # GitHub pausiert Zeitpläne in öffentlichen Repos nach 60 Tagen ohne Aktivität.
+      # Einmal pro Woche (Montag, erster Lauf) wird der Workflow daher neu aktiviert.
+      - if: github.event_name == 'schedule' && steps.gate.outputs.run == 'true'
+        name: Keep schedule alive
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if [ "$(TZ=Europe/Berlin date +%u%H)" = "106" ]; then
+            gh api -X PUT "repos/${{ github.repository }}/actions/workflows/deploy.yml/enable"
+          fi
+
+  deploy:
+    needs: build
+    if: needs.build.outputs.run == 'true'
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
