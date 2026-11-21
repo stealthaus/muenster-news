@@ -19,8 +19,8 @@ describe('DwellWatcher', () => {
   });
   afterEach(() => vi.useRealTimers());
 
-  it('fires once after the card stayed visible long enough', () => {
-    FakeIO.set(el, 0.9);
+  it('fires once after the card stayed fully visible long enough', () => {
+    FakeIO.set(el, 1);
     vi.advanceTimersByTime(2999);
     expect(onRead).not.toHaveBeenCalled();
     vi.advanceTimersByTime(1);
@@ -30,27 +30,39 @@ describe('DwellWatcher', () => {
     expect(onRead).toHaveBeenCalledTimes(1);
   });
 
-  it('resets when the card scrolls away before the time is up', () => {
-    FakeIO.set(el, 0.9);
+  it('resets when part of the card scrolls away before the time is up', () => {
+    FakeIO.set(el, 1);
     vi.advanceTimersByTime(2000);
-    FakeIO.set(el, 0.2);
+    FakeIO.set(el, 0.9);
     vi.advanceTimersByTime(5000);
     expect(onRead).not.toHaveBeenCalled();
-    FakeIO.set(el, 0.7);
+    FakeIO.set(el, 0.995);
     vi.advanceTimersByTime(3000);
     expect(onRead).toHaveBeenCalledTimes(1);
   });
 
-  it('does not start while barely visible', () => {
+  it('does not start while the card is only partly on screen', () => {
     FakeIO.set(el, 0.5);
+    vi.advanceTimersByTime(10000);
+    FakeIO.set(el, 0.9);
     vi.advanceTimersByTime(10000);
     expect(onRead).not.toHaveBeenCalled();
   });
 
-  it('counts tall cards that fill most of the screen', () => {
+  it('counts tall cards only while they fill the whole screen', () => {
+    FakeIO.set(el, 0.35, { height: 2000, rootHeight: 800 });
+    vi.advanceTimersByTime(10000);
+    expect(onRead).not.toHaveBeenCalled();
     FakeIO.set(el, 0.4, { height: 2000, rootHeight: 800 });
     vi.advanceTimersByTime(3000);
     expect(onRead).toHaveBeenCalled();
+  });
+
+  it('leaves the fixed bars out of the screen area', () => {
+    FakeIO.reset();
+    const w = new DwellWatcher(FakeIO as never, () => false, () => ({ top: 57.6, bottom: 92 }));
+    w.watch(el, 1000, onRead);
+    expect(FakeIO.instances[0].opts?.rootMargin).toBe('-58px 0px -92px 0px');
   });
 
   it('restarts with a new time after expanding', () => {

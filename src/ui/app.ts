@@ -69,6 +69,8 @@ export class App {
 
   private el!: {
     stand: HTMLElement;
+    daybar: HTMLElement;
+    tabbar: HTMLElement;
     tabs: HTMLElement;
     allRead: HTMLButtonElement;
     pill: HTMLButtonElement;
@@ -88,7 +90,11 @@ export class App {
     this.root = deps.root;
     this.store = deps.store;
     this.now = deps.now ?? Date.now;
-    this.watcher = new DwellWatcher(deps.IO, () => this.view !== 'feed' || this.sheetOpen);
+    this.watcher = new DwellWatcher(
+      deps.IO,
+      () => this.view !== 'feed' || this.sheetOpen,
+      () => ({ top: this.el.daybar.getBoundingClientRect().height, bottom: this.el.tabbar.getBoundingClientRect().height }),
+    );
     this.renderShell();
     this.toaster = new Toaster(this.root);
   }
@@ -181,7 +187,7 @@ export class App {
     });
 
     this.root.replaceChildren(masthead, h('main', {}, feedView, savedView), nav, sheet);
-    this.el = { stand, tabs, allRead, pill, feed, end, readFeed, feedView, savedView, savedList, navNew, navSaved, sheet };
+    this.el = { stand, daybar, tabbar: nav, tabs, allRead, pill, feed, end, readFeed, feedView, savedView, savedList, navNew, navSaved, sheet };
   }
 
   private updateHeader(): void {
@@ -352,7 +358,35 @@ export class App {
       btn.addEventListener('click', () => this.showRead());
       parts.push(btn);
     }
+    if (this.hasResettable()) parts.push(this.resetButton());
     this.el.end.replaceChildren(...parts);
+  }
+
+  /** Read or swiped-away items in the feed days that a reset would bring back. */
+  private hasResettable(): boolean {
+    return buildFeed(this.items, this.store).some((d) => d.read.some((i) => !this.store.isSaved(i.id)));
+  }
+
+  private resetButton(): HTMLElement {
+    const btn = h('button', { class: 'btn btn-reset', type: 'button' }, icon('refresh', 18), 'Alles wieder als ungelesen zeigen');
+    btn.addEventListener('click', () => this.resetRead());
+    return btn;
+  }
+
+  /** Brings back everything read or swiped away as unread; saved items stay in the Merkfach. Undo restores it. */
+  resetRead(): void {
+    this.sheetOpen = false;
+    this.el.sheet.hidden = true;
+    const before = new Set(this.removed);
+    const snap = this.store.resetRead();
+    this.removed = new Set([...this.removed].filter((id) => this.store.isSaved(id)));
+    this.rebuildFeed();
+    window.scrollTo?.({ top: 0, behavior: 'smooth' });
+    this.toaster.show('Alles wieder ungelesen', () => {
+      this.store.restore(snap);
+      this.removed = before;
+      this.rebuildFeed();
+    });
   }
 
   /** Read items of the feed days that are not on screen any more. */
@@ -497,6 +531,7 @@ export class App {
         h('p', { class: 'sheet-hint' }, 'Ausgeschaltete Themen erscheinen nicht im Feed.'),
         h('div', { class: 'chips' }, ...chips),
         done,
+        this.resetButton(),
       ),
     );
     this.el.sheet.hidden = false;

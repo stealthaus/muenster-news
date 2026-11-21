@@ -3,7 +3,10 @@ export class FakeIO {
   static instances: FakeIO[] = [];
   observed = new Set<Element>();
 
-  constructor(private cb: IntersectionObserverCallback) {
+  constructor(
+    private cb: IntersectionObserverCallback,
+    public opts?: IntersectionObserverInit,
+  ) {
     FakeIO.instances.push(this);
   }
 

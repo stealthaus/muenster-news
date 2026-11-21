@@ -165,6 +165,18 @@ export class Store {
     this.changed();
   }
 
+  /**
+   * Makes every read item unread again, except saved ones, which stay in the Merkfach and out of the feed.
+   * Returns a snapshot for undo.
+   */
+  resetRead(): Snapshot {
+    const ids = Object.keys(this.state.read).filter((id) => !(id in this.state.saved));
+    const snap = this.snapshot(ids);
+    for (const id of ids) delete this.state.read[id];
+    this.changed();
+    return snap;
+  }
+
   // Saved items
 
   isSaved(id: string): boolean {

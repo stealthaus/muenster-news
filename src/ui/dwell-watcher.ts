@@ -1,5 +1,13 @@
-/** Share of a card, or of the viewport for tall cards, that has to be visible for the timer to run. */
-export const VISIBLE_RATIO = 0.6;
+/** A card counts as on screen when this share of it is visible, which leaves room for sub-pixel rounding. */
+export const FULL_RATIO = 0.99;
+/** Fine steps, so a card taller than the screen is noticed the moment it fills it. */
+const THRESHOLDS = Array.from({ length: 101 }, (_, i) => i / 100);
+
+/** Screen edges covered by fixed bars (sticky day bar, tab bar), in pixels. */
+export interface Insets {
+  top: number;
+  bottom: number;
+}
 
 type IOCtor = new (cb: IntersectionObserverCallback, opts?: IntersectionObserverInit) => IntersectionObserver;
 
@@ -11,31 +19,43 @@ interface Watched {
 }
 
 /**
- * Fires `onRead` once a card has stayed in view for its dwell time. Scrolling away resets the timer, so only real
- * pauses count. Each card fires at most once and is then forgotten.
+ * Fires `onRead` once a card has stayed completely on screen (between the fixed bars) for its dwell time. Scrolling
+ * part of it away resets the timer, so only real pauses count. Each card fires at most once and is then forgotten.
  */
 export class DwellWatcher {
-  private io: IntersectionObserver | null;
+  private io: IntersectionObserver | null = null;
   private watched = new Map<Element, Watched>();
 
-  constructor(IO: IOCtor | undefined = globalThis.IntersectionObserver, private paused = () => false) {
-    this.io = IO
-      ? new IO((entries) => entries.forEach((e) => this.update(e)), { threshold: [0, 0.25, 0.5, VISIBLE_RATIO, 0.8, 1] })
-      : null;
-  }
+  constructor(
+    private IO: IOCtor | undefined = globalThis.IntersectionObserver,
+    private paused = () => false,
+    private insets: () => Insets = () => ({ top: 0, bottom: 0 }),
+  ) {}
 
   static isVisibleEnough(e: Pick<IntersectionObserverEntry, 'intersectionRatio' | 'intersectionRect' | 'rootBounds' | 'isIntersecting'>): boolean {
     if (!e.isIntersecting) return false;
-    if (e.intersectionRatio >= VISIBLE_RATIO) return true;
-    // A card taller than the screen can never be 60 % visible; then it counts when it fills most of the screen.
+    if (e.intersectionRatio >= FULL_RATIO) return true;
+    // A card taller than the screen can never be fully visible; then it counts while it fills the whole screen.
     const rootH = e.rootBounds?.height ?? 0;
-    return rootH > 0 && e.intersectionRect.height / rootH >= VISIBLE_RATIO;
+    return rootH > 0 && e.intersectionRect.height >= rootH - 2;
+  }
+
+  /** Created on first use, when the bars are laid out and their heights can be measured. */
+  private observer(): IntersectionObserver | null {
+    if (!this.io && this.IO) {
+      const { top, bottom } = this.insets();
+      this.io = new this.IO((entries) => entries.forEach((e) => this.update(e)), {
+        threshold: THRESHOLDS,
+        rootMargin: `${-Math.round(top)}px 0px ${-Math.round(bottom)}px 0px`,
+      });
+    }
+    return this.io;
   }
 
   watch(el: Element, ms: number, onRead: () => void): void {
     this.unwatch(el);
     this.watched.set(el, { ms, onRead, timer: null, visible: false });
-    this.io?.observe(el);
+    this.observer()?.observe(el);
   }
 
   /** New dwell time, e.g. after expanding; restarts a running timer. */

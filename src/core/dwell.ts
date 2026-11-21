@@ -1,10 +1,10 @@
-/** Words that fit into the collapsed card (7 lines at phone width). */
-export const COLLAPSED_WORDS = 80;
+/** Words that fit into the collapsed card (15 lines at phone width). */
+export const COLLAPSED_WORDS = 170;
 /**
- * Cards longer than this many characters (or with an image) start collapsed to 7 lines. That is a little under 7 lines
+ * Cards longer than this many characters (or with an image) start collapsed to 15 lines. That is a little under 15 lines
  * on a narrow phone; in the browser the card then measures itself and opens up again when the text fits after all.
  */
-export const COLLAPSE_CHARS = 280;
+export const COLLAPSE_CHARS = 600;
 
 export const DWELL_MIN_MS = 2000;
 export const DWELL_MAX_MS = 8000;

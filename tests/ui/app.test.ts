@@ -171,7 +171,36 @@ describe('feed', () => {
   it('shows an empty state when everything is read', async () => {
     const m = await mount({ prepare: (s) => s.markAllRead(ITEMS) });
     expect(m.$('.feed-end .empty-title')!.textContent).toBe('Alles gelesen');
-    expect(m.$$('.feed-end .btn')).toHaveLength(1);
+    expect(m.$$('.feed-end .btn').map((b) => b.textContent)).toEqual(['Bereits gelesene Meldungen anzeigen', 'Alles wieder als ungelesen zeigen']);
+  });
+
+  it('resets everything read or swiped away, keeps saved items out, and undoes the reset', async () => {
+    const m = await mount({ prepare: (s) => s.markRead(ITEMS[3]) });
+    expect(m.$('.feed-end .btn-reset')).not.toBeNull();
+    drag(m.card('Rat tagt')!.querySelector('.card-surface')!, -200);
+    drag(m.card('Zoo öffnet')!.querySelector('.card-surface')!, 200);
+    vi.advanceTimersByTime(LEAVE_MS);
+    expect(m.counts()).toEqual(['2', '0', '1']);
+
+    m.$('.feed-end .btn-reset')!.click();
+    expect(m.counts()).toEqual(['3', '1', '1']);
+    expect(m.card('Rat tagt')!.classList.contains('is-read')).toBe(false);
+    expect(m.card('Baustelle am Ring')).toBeDefined();
+    expect(m.card('Zoo öffnet')).toBeUndefined();
+    expect(m.store.isSaved(ITEMS[4].id)).toBe(true);
+    expect(m.$('.feed-end .btn-reset')).toBeNull();
+
+    m.toast().querySelector<HTMLButtonElement>('button')!.click();
+    expect(m.counts()).toEqual(['2', '0', '1']);
+    expect(m.card('Rat tagt')).toBeUndefined();
+  });
+
+  it('offers the reset in the topic sheet too', async () => {
+    const m = await mount({ prepare: (s) => s.markAllRead(ITEMS.slice(0, 3)) });
+    m.$$('.daybar .icon-btn')[1].click();
+    m.$('.sheet .btn-reset')!.click();
+    expect(m.$('.sheet')!.hidden).toBe(true);
+    expect(m.counts()).toEqual(['3', '2', '1']);
   });
 
   it('brings back read items with a lot of new text as updated', async () => {

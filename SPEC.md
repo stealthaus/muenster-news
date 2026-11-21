@@ -19,14 +19,17 @@ Start mit dem Newsticker von Antenne Münster. Stand der Entscheidungen: 21.11.2
 
 - Zeigt die **letzten 3 Tage mit Meldungen** (am Wochenende also Mi–Fr), nur ungelesene, neueste zuerst.
 - Senkrechtes Scrollen durch Karten. Tages-Reiter oben mit Zahl der ungelesenen Meldungen springen zum Tag.
-- **Gelesen durch Verweilen:** Ist eine Karte überwiegend sichtbar, läuft eine Zeit nach Textlänge
+- **Gelesen durch Verweilen:** Ist eine Karte komplett sichtbar (zwischen Tagesleiste und unterer Leiste), läuft eine Zeit nach Textlänge
   (ca. 1 s pro 15 Wörter, mind. 2 s, max. 8 s; bei eingeklappter Karte zählt nur der sichtbare Teil).
+  Karten, die höher als der Bildschirm sind, zählen, solange sie ihn ganz ausfüllen. Ragt ein Teil heraus, beginnt die Zeit neu.
   Danach leuchtet der Rahmen kurz auf, die Karte wird blasser und gilt als gelesen. Sie bleibt bis zum nächsten Öffnen stehen.
 - **Wischen nach links** = gelesen (Karte verschwindet, kurz „Rückgängig“).
 - **Wischen nach rechts** = merken (Karte wandert ins Merkfach und gilt als gelesen, kurz „Rückgängig“).
 - **Alle gelesen pro Tag** am Tages-Reiter, mit Rückgängig.
 - Ganz unten: Button **„Bereits gelesene Meldungen anzeigen“**, danach geht es mit den gelesenen der 3 Tage weiter.
-- Text: Volltext mit Bild und Bildunterschrift. Karten zeigen **bis zu 7 Zeilen**, längere klappen per Tippen auf.
+- **Zurücksetzen:** Button „Alles wieder als ungelesen zeigen“ unten im Feed und im Themen-Blatt. Holt alle gelesenen und
+  weggewischten Meldungen als ungelesen zurück, mit Rückgängig. Gemerkte bleiben im Merkfach.
+- Text: Volltext mit Bild und Bildunterschrift. Karten zeigen eingeklappt **bis zu 15 Zeilen**, längere klappen per Tippen auf.
 - **Themen** werden per Stichwortliste erkannt (Verkehr, Polizei, Sport, Stadt, Freizeit, Kultur, Wetter, Sonstiges),
   stehen als Label auf der Karte und lassen sich filtern (ausgeblendete Themen merkt sich die App).
 - **Geänderte Meldungen:** Kommt zu einer gelesenen Meldung deutlich Text dazu (mind. 40 % und 120 Zeichen),

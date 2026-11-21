@@ -9,7 +9,7 @@ import { skyline } from '../../src/ui/skyline';
 import { Toaster, TOAST_MS } from '../../src/ui/toast';
 import { item, MemoryKV } from '../helpers';
 
-const long = item({ title: 'Lange Meldung', paragraphs: ['wort '.repeat(60).trim(), 'noch '.repeat(60).trim()] });
+const long = item({ title: 'Lange Meldung', paragraphs: ['wort '.repeat(150).trim(), 'noch '.repeat(150).trim()] });
 const short = item({ title: 'Kurz', paragraphs: ['Nur ein Satz.'], category: 'polizei', time: '09:05' });
 const withImage = item({ paragraphs: ['Kurz.'], image: { src: 'https://example.org/a.jpg', caption: 'Bildtext', credit: 'Foto X' } });
 
@@ -74,7 +74,7 @@ describe('renderCard', () => {
     expect(card.classList.contains('is-collapsed')).toBe(false);
   });
 
-  it('collapses long texts to 7 lines and expands on tap', () => {
+  it('collapses long texts to 15 lines and expands on tap', () => {
     const onToggle = vi.fn();
     const card = renderCard(long, { onToggle });
     expect(isCollapsible(long)).toBe(true);
@@ -116,8 +116,8 @@ describe('renderCard', () => {
   });
 
   it('counts only the visible words while collapsed', () => {
-    expect(cardWords(long, false)).toBe(2 + 80);
-    expect(cardWords(long, true)).toBe(2 + 120);
+    expect(cardWords(long, false)).toBe(2 + 170);
+    expect(cardWords(long, true)).toBe(2 + 300);
     expect(cardWords(short, false)).toBe(1 + 3);
   });
 });

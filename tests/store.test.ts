@@ -39,6 +39,21 @@ describe('read state', () => {
     expect(store.isRead(a)).toBe(false);
   });
 
+  it('resets all read marks except saved items and undoes the reset', () => {
+    const { kv, now, store } = setup();
+    const a = item({ time: '10:00' });
+    const b = item({ time: '11:00' });
+    const kept = item({ time: '12:00' });
+    store.markAllRead([a, b]);
+    store.save(kept);
+    const snap = store.resetRead();
+    expect([a, b].some((i) => store.isRead(i))).toBe(false);
+    expect(store.isRead(kept)).toBe(true);
+    expect(new Store(kv, now).isRead(a)).toBe(false);
+    store.restore(snap);
+    expect([a, b, kept].every((i) => store.isRead(i))).toBe(true);
+  });
+
   it('treats substantial text growth as an update', () => {
     const { store } = setup();
     const short = item({ paragraphs: ['x'.repeat(200)] });

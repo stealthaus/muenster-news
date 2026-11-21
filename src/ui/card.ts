@@ -98,7 +98,7 @@ export function renderCard(item: NewsItem, opts: CardOptions = {}): HTMLElement 
 
   card.append(under, surface);
 
-  // The 7-line clamp is a guess from the character count; once laid out, open cards whose text fits anyway.
+  // The 15-line clamp is a guess from the character count; once laid out, open cards whose text fits anyway.
   if (collapsible && !item.image) {
     const fit = () => {
       if (!card.classList.contains('is-collapsed') || text.clientHeight === 0) return;

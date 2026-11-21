@@ -390,12 +390,12 @@ button {
   margin-bottom: 0;
 }
 
-/* Collapsed: 7 lines of text, the image only after expanding */
+/* Collapsed: 15 lines of text, the image only after expanding */
 .card.is-collapsed .card-text {
   display: -webkit-box;
   -webkit-box-orient: vertical;
-  -webkit-line-clamp: 7;
-  line-clamp: 7;
+  -webkit-line-clamp: 15;
+  line-clamp: 15;
   overflow: hidden;
 }
 
@@ -488,8 +488,17 @@ button {
 /* Feed end */
 
 .feed-end {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
   padding: 16px 12px 0;
   text-align: center;
+}
+
+.btn-reset {
+  color: var(--mute);
+  font-weight: 500;
 }
 
 .end-note {
@@ -745,6 +754,10 @@ button {
 
 .sheet-panel .btn {
   width: 100%;
+}
+
+.sheet-panel .btn-reset {
+  margin-top: 10px;
 }
 
 /* Toast */
