@@ -1,6 +1,6 @@
 // App shell cache-first, news.json network-first with the last copy as offline fallback.
 // Bump VERSION to drop old caches after larger changes.
-const VERSION = 'v1';
+const VERSION = 'v2';
 const SHELL = `shell-${VERSION}`;
 const DATA = `data-${VERSION}`;
 const IMAGES = `images-${VERSION}`;
