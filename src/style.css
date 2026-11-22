@@ -468,6 +468,17 @@ button {
   opacity: 0.62;
 }
 
+/* Dark cards on a dark page barely change with opacity alone: sink them into the page and dim them further. */
+@media (prefers-color-scheme: dark) {
+  .card.is-read:not(.is-expanded) {
+    opacity: 0.42;
+  }
+  .card.is-read:not(.is-expanded) .card-surface {
+    background: var(--bg);
+    filter: grayscale(0.7);
+  }
+}
+
 .card.is-leaving {
   max-height: 0;
   margin: 0;

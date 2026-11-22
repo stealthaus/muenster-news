@@ -1,7 +1,9 @@
-/** A card counts as on screen when this share of it is visible, which leaves room for sub-pixel rounding. */
-export const FULL_RATIO = 0.99;
-/** Fine steps, so a card taller than the screen is noticed the moment it fills it. */
+/** Share of the screen (between the fixed bars) that counts as the reading zone, centred vertically. */
+export const ZONE_SHARE = 0.5;
+/** Fine steps, so the observer reports often while a card slides across the zone's edges. */
 const THRESHOLDS = Array.from({ length: 101 }, (_, i) => i / 100);
+/** Re-measure the zone when the screen height changes by more than this (rotation, iOS toolbars). */
+const RESIZE_SLACK = 40;
 
 /** Screen edges covered by fixed bars (sticky day bar, tab bar), in pixels. */
 export interface Insets {
@@ -10,6 +12,7 @@ export interface Insets {
 }
 
 type IOCtor = new (cb: IntersectionObserverCallback, opts?: IntersectionObserverInit) => IntersectionObserver;
+type Entry = Pick<IntersectionObserverEntry, 'isIntersecting' | 'intersectionRect' | 'boundingClientRect' | 'rootBounds'>;
 
 interface Watched {
   ms: number;
@@ -18,38 +21,60 @@ interface Watched {
   visible: boolean;
 }
 
+/** Margins that shrink the viewport to the middle `ZONE_SHARE` of the area between the bars. */
+export function zoneMargin(viewportH: number, { top, bottom }: Insets): string {
+  const free = Math.max(0, viewportH - top - bottom);
+  const edge = (free * (1 - ZONE_SHARE)) / 2;
+  return `${-Math.round(top + edge)}px 0px ${-Math.round(bottom + edge)}px 0px`;
+}
+
 /**
- * Fires `onRead` once a card has stayed completely on screen (between the fixed bars) for its dwell time. Scrolling
- * part of it away resets the timer, so only real pauses count. Each card fires at most once and is then forgotten.
+ * Fires `onRead` once a card has stayed in the reading zone for its dwell time. The zone is the middle half of the
+ * screen between the fixed bars; a card is in it while its centre lies inside, or while it covers the whole zone.
+ * Scrolling it out resets the timer, so only real pauses count. Each card fires at most once and is then forgotten.
  */
 export class DwellWatcher {
   private io: IntersectionObserver | null = null;
   private watched = new Map<Element, Watched>();
+  private measuredH = 0;
 
   constructor(
     private IO: IOCtor | undefined = globalThis.IntersectionObserver,
     private paused = () => false,
     private insets: () => Insets = () => ({ top: 0, bottom: 0 }),
-  ) {}
+    private viewportH: () => number = () => globalThis.innerHeight ?? 0,
+  ) {
+    globalThis.addEventListener?.('resize', () => this.remeasure(), { passive: true });
+  }
 
-  static isVisibleEnough(e: Pick<IntersectionObserverEntry, 'intersectionRatio' | 'intersectionRect' | 'rootBounds' | 'isIntersecting'>): boolean {
-    if (!e.isIntersecting) return false;
-    if (e.intersectionRatio >= FULL_RATIO) return true;
-    // A card taller than the screen can never be fully visible; then it counts while it fills the whole screen.
-    const rootH = e.rootBounds?.height ?? 0;
-    return rootH > 0 && e.intersectionRect.height >= rootH - 2;
+  static inZone(e: Entry): boolean {
+    if (!e.isIntersecting || !e.rootBounds) return false;
+    const zone = e.rootBounds;
+    // A card taller than the zone counts while it fills it.
+    if (e.intersectionRect.height >= zone.height - 2) return true;
+    const mid = e.boundingClientRect.top + e.boundingClientRect.height / 2;
+    return mid >= zone.top && mid <= zone.bottom;
   }
 
   /** Created on first use, when the bars are laid out and their heights can be measured. */
   private observer(): IntersectionObserver | null {
     if (!this.io && this.IO) {
-      const { top, bottom } = this.insets();
+      this.measuredH = this.viewportH();
       this.io = new this.IO((entries) => entries.forEach((e) => this.update(e)), {
         threshold: THRESHOLDS,
-        rootMargin: `${-Math.round(top)}px 0px ${-Math.round(bottom)}px 0px`,
+        rootMargin: zoneMargin(this.measuredH, this.insets()),
       });
     }
     return this.io;
+  }
+
+  /** Builds a fresh observer for the new screen height; it reports every card once, which re-checks them. */
+  private remeasure(): void {
+    if (!this.io || Math.abs(this.viewportH() - this.measuredH) <= RESIZE_SLACK) return;
+    this.io.disconnect();
+    this.io = null;
+    const io = this.observer();
+    for (const el of this.watched.keys()) io?.observe(el);
   }
 
   watch(el: Element, ms: number, onRead: () => void): void {
@@ -100,7 +125,7 @@ export class DwellWatcher {
   private update(e: IntersectionObserverEntry): void {
     const w = this.watched.get(e.target);
     if (!w) return;
-    w.visible = DwellWatcher.isVisibleEnough(e);
+    w.visible = DwellWatcher.inZone(e);
     if (w.visible && !w.timer) this.arm(e.target, w);
     if (!w.visible && w.timer) {
       clearTimeout(w.timer);

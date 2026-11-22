@@ -23,17 +23,25 @@ export class FakeIO {
     return [];
   }
 
-  /** Reports `el` with the given visible share to every observer that watches it. */
+  /**
+   * Reports `el` with the given share of it inside the observer's zone, sliding in from the zone's bottom edge.
+   * Zone: 400px high starting at y=200, unless `rootHeight` says otherwise.
+   */
   static set(el: Element, ratio: number, opts: { height?: number; rootHeight?: number } = {}) {
     const height = opts.height ?? 200;
+    const rootH = opts.rootHeight ?? 400;
+    const rootTop = 200;
+    const inside = Math.min(height * ratio, rootH);
+    const top = rootTop + rootH - inside;
     for (const io of FakeIO.instances) {
       if (!io.observed.has(el)) continue;
       const entry = {
         target: el,
         isIntersecting: ratio > 0,
         intersectionRatio: ratio,
-        intersectionRect: { height: height * ratio },
-        rootBounds: { height: opts.rootHeight ?? 800 },
+        intersectionRect: { height: inside },
+        boundingClientRect: { top, height },
+        rootBounds: { top: rootTop, bottom: rootTop + rootH, height: rootH },
       } as unknown as IntersectionObserverEntry;
       io.cb([entry], io as unknown as IntersectionObserver);
     }

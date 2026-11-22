@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { DwellWatcher } from '../../src/ui/dwell-watcher';
+import { DwellWatcher, zoneMargin } from '../../src/ui/dwell-watcher';
 import { FakeIO } from './fakes';
 
 describe('DwellWatcher', () => {
@@ -30,39 +30,57 @@ describe('DwellWatcher', () => {
     expect(onRead).toHaveBeenCalledTimes(1);
   });
 
-  it('resets when part of the card scrolls away before the time is up', () => {
+  it('resets when the card centre leaves the zone before the time is up', () => {
     FakeIO.set(el, 1);
     vi.advanceTimersByTime(2000);
-    FakeIO.set(el, 0.9);
+    FakeIO.set(el, 0.4);
     vi.advanceTimersByTime(5000);
     expect(onRead).not.toHaveBeenCalled();
-    FakeIO.set(el, 0.995);
+    FakeIO.set(el, 0.6);
     vi.advanceTimersByTime(3000);
     expect(onRead).toHaveBeenCalledTimes(1);
   });
 
-  it('does not start while the card is only partly on screen', () => {
+  it('starts as soon as the card centre is inside the zone', () => {
+    FakeIO.set(el, 0.3);
+    vi.advanceTimersByTime(10000);
+    expect(onRead).not.toHaveBeenCalled();
     FakeIO.set(el, 0.5);
-    vi.advanceTimersByTime(10000);
-    FakeIO.set(el, 0.9);
-    vi.advanceTimersByTime(10000);
-    expect(onRead).not.toHaveBeenCalled();
-  });
-
-  it('counts tall cards only while they fill the whole screen', () => {
-    FakeIO.set(el, 0.35, { height: 2000, rootHeight: 800 });
-    vi.advanceTimersByTime(10000);
-    expect(onRead).not.toHaveBeenCalled();
-    FakeIO.set(el, 0.4, { height: 2000, rootHeight: 800 });
     vi.advanceTimersByTime(3000);
     expect(onRead).toHaveBeenCalled();
   });
 
-  it('leaves the fixed bars out of the screen area', () => {
+  it('counts cards taller than the zone while they fill it', () => {
+    FakeIO.set(el, 0.15, { height: 2000 });
+    vi.advanceTimersByTime(10000);
+    expect(onRead).not.toHaveBeenCalled();
+    FakeIO.set(el, 0.2, { height: 2000 });
+    vi.advanceTimersByTime(3000);
+    expect(onRead).toHaveBeenCalled();
+  });
+
+  it('uses the middle half of the area between the fixed bars as zone', () => {
     FakeIO.reset();
-    const w = new DwellWatcher(FakeIO as never, () => false, () => ({ top: 57.6, bottom: 92 }));
+    const w = new DwellWatcher(FakeIO as never, () => false, () => ({ top: 57.6, bottom: 92 }), () => 844);
     w.watch(el, 1000, onRead);
-    expect(FakeIO.instances[0].opts?.rootMargin).toBe('-58px 0px -92px 0px');
+    // 844 - 57.6 - 92 = 694.4 free; a quarter of it (173.6) is cut off at each end.
+    expect(FakeIO.instances[0].opts?.rootMargin).toBe('-231px 0px -266px 0px');
+    expect(zoneMargin(800, { top: 0, bottom: 0 })).toBe('-200px 0px -200px 0px');
+  });
+
+  it('re-measures the zone when the screen height changes', () => {
+    FakeIO.reset();
+    let h = 800;
+    const w = new DwellWatcher(FakeIO as never, () => false, () => ({ top: 0, bottom: 0 }), () => h);
+    w.watch(el, 1000, onRead);
+    h = 820;
+    window.dispatchEvent(new Event('resize'));
+    expect(FakeIO.instances).toHaveLength(1);
+    h = 400;
+    window.dispatchEvent(new Event('resize'));
+    expect(FakeIO.instances).toHaveLength(2);
+    expect(FakeIO.instances[1].opts?.rootMargin).toBe('-100px 0px -100px 0px');
+    expect(FakeIO.instances[1].observed.has(el)).toBe(true);
   });
 
   it('restarts with a new time after expanding', () => {
