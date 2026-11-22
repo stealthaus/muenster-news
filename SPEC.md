@@ -19,9 +19,10 @@ Start mit dem Newsticker von Antenne Münster. Stand der Entscheidungen: 21.11.2
 
 - Zeigt die **letzten 3 Tage mit Meldungen** (am Wochenende also Mi–Fr), nur ungelesene, neueste zuerst.
 - Senkrechtes Scrollen durch Karten. Tages-Reiter oben mit Zahl der ungelesenen Meldungen springen zum Tag.
-- **Gelesen durch Verweilen:** Liegt die Mitte einer Karte in der Lesezone – der mittleren Hälfte des Bereichs zwischen
-  Tagesleiste und unterer Leiste –, läuft eine Zeit nach Textlänge
+- **Gelesen durch Verweilen:** Liegt die Mitte einer Karte in der Lesezone, läuft eine Zeit nach Textlänge
   (ca. 1 s pro 15 Wörter, mind. 2 s, max. 8 s; bei eingeklappter Karte zählt nur der sichtbare Teil).
+  Die Lesezone ist ein Streifen über 45 % des Bereichs zwischen Tagesleiste und unterer Leiste, leicht nach oben
+  versetzt (um 35 % des Platzes, der darüber und darunter frei bleibt; auf dem iPhone etwa y 182–494).
   Karten, die höher als die Lesezone sind, zählen, solange sie sie ganz ausfüllen. Verlässt die Karte die Zone, beginnt die Zeit neu.
   Danach leuchtet der Rahmen kurz auf, die Karte wird blasser (im Dark Mode deutlich stärker) und gilt als gelesen. Sie bleibt bis zum nächsten Öffnen stehen.
 - **Wischen nach links** = gelesen (Karte verschwindet, kurz „Rückgängig“).

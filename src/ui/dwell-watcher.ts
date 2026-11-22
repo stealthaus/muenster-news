@@ -1,5 +1,10 @@
-/** Share of the screen (between the fixed bars) that counts as the reading zone, centred vertically. */
-export const ZONE_SHARE = 0.5;
+/** Share of the screen (between the fixed bars) that counts as the reading zone. */
+export const ZONE_SHARE = 0.45;
+/**
+ * Where the zone sits in the room left above and below it: 0 = centred, -1 = against the day bar, 1 = against the tab
+ * bar. Slightly high, because the eye reads in the upper part of the screen.
+ */
+export const ZONE_SHIFT = -0.35;
 /** Fine steps, so the observer reports often while a card slides across the zone's edges. */
 const THRESHOLDS = Array.from({ length: 101 }, (_, i) => i / 100);
 /** Re-measure the zone when the screen height changes by more than this (rotation, iOS toolbars). */
@@ -21,16 +26,17 @@ interface Watched {
   visible: boolean;
 }
 
-/** Margins that shrink the viewport to the middle `ZONE_SHARE` of the area between the bars. */
+/** Margins that shrink the viewport to the reading zone: `ZONE_SHARE` of the area between the bars, placed by `ZONE_SHIFT`. */
 export function zoneMargin(viewportH: number, { top, bottom }: Insets): string {
   const free = Math.max(0, viewportH - top - bottom);
-  const edge = (free * (1 - ZONE_SHARE)) / 2;
-  return `${-Math.round(top + edge)}px 0px ${-Math.round(bottom + edge)}px 0px`;
+  const room = (free * (1 - ZONE_SHARE)) / 2;
+  const shift = ZONE_SHIFT * room;
+  return `${-Math.round(top + room + shift)}px 0px ${-Math.round(bottom + room - shift)}px 0px`;
 }
 
 /**
- * Fires `onRead` once a card has stayed in the reading zone for its dwell time. The zone is the middle half of the
- * screen between the fixed bars; a card is in it while its centre lies inside, or while it covers the whole zone.
+ * Fires `onRead` once a card has stayed in the reading zone for its dwell time. The zone is a band a little above the
+ * middle of the screen between the fixed bars (see `zoneMargin`); a card is in it while its centre lies inside, or while it covers the whole zone.
  * Scrolling it out resets the timer, so only real pauses count. Each card fires at most once and is then forgotten.
  */
 export class DwellWatcher {

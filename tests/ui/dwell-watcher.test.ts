@@ -59,13 +59,13 @@ describe('DwellWatcher', () => {
     expect(onRead).toHaveBeenCalled();
   });
 
-  it('uses the middle half of the area between the fixed bars as zone', () => {
+  it('uses a band a little above the middle of the area between the fixed bars as zone', () => {
     FakeIO.reset();
     const w = new DwellWatcher(FakeIO as never, () => false, () => ({ top: 57.6, bottom: 92 }), () => 844);
     w.watch(el, 1000, onRead);
-    // 844 - 57.6 - 92 = 694.4 free; a quarter of it (173.6) is cut off at each end.
-    expect(FakeIO.instances[0].opts?.rootMargin).toBe('-231px 0px -266px 0px');
-    expect(zoneMargin(800, { top: 0, bottom: 0 })).toBe('-200px 0px -200px 0px');
+    // 694.4 free; zone 45 % = 312.5, room 191 above and below, shifted up by 35 % of it (66.8).
+    expect(FakeIO.instances[0].opts?.rootMargin).toBe('-182px 0px -350px 0px');
+    expect(zoneMargin(800, { top: 0, bottom: 0 })).toBe('-143px 0px -297px 0px');
   });
 
   it('re-measures the zone when the screen height changes', () => {
@@ -79,7 +79,7 @@ describe('DwellWatcher', () => {
     h = 400;
     window.dispatchEvent(new Event('resize'));
     expect(FakeIO.instances).toHaveLength(2);
-    expect(FakeIO.instances[1].opts?.rootMargin).toBe('-100px 0px -100px 0px');
+    expect(FakeIO.instances[1].opts?.rootMargin).toBe(zoneMargin(400, { top: 0, bottom: 0 }));
     expect(FakeIO.instances[1].observed.has(el)).toBe(true);
   });
 
